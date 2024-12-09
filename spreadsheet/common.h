@@ -26,6 +26,12 @@ struct Position {
     static const Position NONE;
 };
 
+struct Comp {
+    bool operator()(const Position& lhs, const Position& rhs) const {
+        return std::tie(lhs.col, lhs.row) < std::tie(rhs.col, rhs.row);
+    }
+};
+
 struct Size {
     int rows = 0;
     int cols = 0;
@@ -39,7 +45,7 @@ public:
     enum class Category {
         Ref,    // ссылка на ячейку с некорректной позицией
         Value,  // ячейка не может быть трактована как число
-        Div0,  // в результате вычисления возникло деление на ноль
+        Arithmetic,  // некорректная арифметическая операция
     };
 
     FormulaError(Category category);
