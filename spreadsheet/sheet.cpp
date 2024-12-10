@@ -26,56 +26,29 @@ void Sheet::EmplaceCell(Position pos, std::unique_ptr<Cell>& new_cell) {
     ptr_to_cell.reset(new_cell.release());
 }
 
-void Sheet::SetCell(Position pos, std::string text) {
+void Sheet::ValidatePosition(Position pos) {
+    using namespace std::literals;
     if (!pos.IsValid()) {
-        throw InvalidPositionException("Invalid position");
+        throw InvalidPositionException("Invalid position"s);
     }
+}
+
+void Sheet::SetCell(Position pos, std::string text) {
+    ValidatePosition(pos);
     std::unique_ptr<Cell> new_cell = CreateCell(pos, text);
-
-    std::vector<Position> referenced_cells = new_cell->GetReferencedCells();
-
-    if (!referenced_cells.empty()) {
-        if (HasCyclicDependencies(pos, referenced_cells)) {
-            throw CircularDependencyException("Cell formula has circular dependencies"s);
-        }
-        // tell referenced cells they have a new dependant
-        AddUpperRefToCells(pos, referenced_cells);
-    }
-    // invalidate cache of dependant cells
-    if (upper_references_.count(pos) > 0) {
-        for (const Position& cell : upper_references_.at(pos)) {
-            Cell* cell_data = GetConcreteCell(cell);
-            cell_data->ClearCache();
-        }
-    }
     EmplaceCell(pos, new_cell);
 
 }
 
-void Sheet::AddUpperRefToCells(Position cell, std::vector<Position> referenced_cells) {
-    for (const Position& pos : referenced_cells) {
-        auto cell_data = GetCell(pos);
-        // create referenced cell if it doesn't exist
-        if (!cell_data) {
-            SetCell(pos, "");
-        }
-        upper_references_[pos].insert(cell);
-    }
-}
-
 const CellInterface* Sheet::GetCell(Position pos) const {
-    if (!pos.IsValid()) {
-        throw InvalidPositionException("Invalid position");
-    }
+    ValidatePosition(pos);
     if (pos.row >= int(sheet_.size()) || pos.col >= int(sheet_[pos.row].size())) {
         return nullptr;
     }
     return sheet_[pos.row][pos.col].get();
 }
 CellInterface* Sheet::GetCell(Position pos) {
-    if (!pos.IsValid()) {
-        throw InvalidPositionException("Invalid position");
-    }
+    ValidatePosition(pos);
     if (pos.row >= int(sheet_.size()) || pos.col >= int(sheet_[pos.row].size())) {
         return nullptr;
     }
@@ -90,9 +63,7 @@ Cell* Sheet::GetConcreteCell(Position pos) {
 }
 
 void Sheet::ClearCell(Position pos) {
-    if (!pos.IsValid()) {
-        throw InvalidPositionException("Invalid position");
-    }
+    ValidatePosition(pos);
     if (pos.row < int(sheet_.size()) && pos.col < int(sheet_[pos.row].size()) && sheet_[pos.row][pos.col]) {
         sheet_[pos.row][pos.col]->Clear();
         sheet_[pos.row][pos.col].reset();
@@ -148,27 +119,6 @@ void Sheet::PrintTexts(std::ostream& output) const {
         }
         output << '\n';
     }
-}
-
-bool Sheet::HasCyclicDependencies(Position pos, const std::vector<Position> references_down) const {
-    std::set<Position> cells_to_check = { pos };
-    return HasCyclicDependencies(cells_to_check, references_down);
-}
-
-bool Sheet::HasCyclicDependencies(std::set<Position>& cells_to_check, const std::vector<Position>& references_down) const {
-    for (const Position& ref : references_down) {
-        // try insert ref cell to set
-        if (!cells_to_check.insert(ref).second) {
-            return true;
-        }
-        auto ref_data = GetCell(ref);
-        if (ref_data) {
-            if (HasCyclicDependencies(cells_to_check, ref_data->GetReferencedCells())) {
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 std::unique_ptr<SheetInterface> CreateSheet() {

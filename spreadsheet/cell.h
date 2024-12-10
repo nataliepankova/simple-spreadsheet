@@ -4,6 +4,7 @@
 #include "formula.h"
 
 #include <optional>
+#include <set>
 
 class Sheet;
 
@@ -58,7 +59,16 @@ private:
     };
 
     Sheet& sheet_;
+    Position pos_;
     std::unique_ptr<Impl> impl_;
     mutable std::optional<Value> cache_;
+    std::set<Position, Comp> upper_references_;
+
+    std::set<Position, Comp>& GetUpperReferences() {
+        return upper_references_;
+    }
+    void AddUpperRefToCells(std::vector<Position> referenced_cells);
+    bool HasCyclicDependencies(const std::vector<Position> references_down) const;
+    bool HasCyclicDependencies(std::set<Position>& cells_to_check, const std::vector<Position>& references_down) const;
 
 };

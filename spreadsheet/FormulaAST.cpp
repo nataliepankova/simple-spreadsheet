@@ -147,31 +147,29 @@ public:
     double Evaluate([[maybe_unused]] std::function<double(Position)> func) const override {
         double lhs_value = lhs_->Evaluate(func);
         double rhs_value = rhs_->Evaluate(func);
+        double result = 0.0;
         switch (type_) {
         case Add:
-            if (!std::isfinite(lhs_value + rhs_value)) {
-                throw FormulaError(FormulaError::Category::Arithmetic);
-            }
-            return lhs_value + rhs_value;
+            result = lhs_value + rhs_value;
+            break;
         case Subtract:
-            if (!std::isfinite(lhs_value - rhs_value)) {
-                throw FormulaError(FormulaError::Category::Arithmetic);
-            }
-            return lhs_value - rhs_value;
+            result = lhs_value - rhs_value;
+            break;
         case Multiply:
-            if (!std::isfinite(lhs_value * rhs_value)) {
-                throw FormulaError(FormulaError::Category::Arithmetic);
-            }
-            return lhs_value * rhs_value;
+            result =  lhs_value * rhs_value;
+            break;
         case Divide:
-            if (!std::isfinite(lhs_value / rhs_value)) {
-                throw FormulaError(FormulaError::Category::Arithmetic);
-            }
-            return lhs_value / rhs_value;
+            result = lhs_value / rhs_value;
+            break;
+        default:
+            throw FormulaError(FormulaError::Category::Arithmetic);
         }
 
-        throw FormulaError(FormulaError::Category::Value);
-        return static_cast<double>(INT_MAX);
+        if (!std::isfinite(result)) {
+            throw FormulaError(FormulaError::Category::Arithmetic);
+        }
+
+        return result;
     }
 
 private:
